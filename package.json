@@ -11,7 +11,7 @@
     "nightwatch"
   ],
   "dependencies": {
-    "allure2-js-commons": "^1.2.0",
+    "allure-js-commons": "^1.2.0",
     "comment-parser": "^0.5.0",
     "find": "^0.2.9",
     "nightwatch": "^1.0.14"

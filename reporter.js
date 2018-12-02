@@ -13,7 +13,7 @@ const runtimeAllure = new Runtime(allureReporter);
 const find = require("find");
 
 const self = (module.exports = {
-  write: function(results, done, directoryPath) {
+  write: function(results, options, done, directoryPath) {
     allureReporter.setOptions(" -o reports/allure-report" || {});
     for (let currentModule in results.modules) {
       module = results.modules[currentModule];
