@@ -1,26 +1,25 @@
 {
-  "name": "nightwatch-allure-adapter",
-  "version": "1.2.3",
-  "description": "Allure adapter for nightwatch framework",
+  "name": "nightwatch-allure2-adapter",
+  "version": "1.0.0",
+  "description": "Allure2 adapter for nightwatch framework",
   "main": "reporter.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [
-    "allure",
+    "allure2",
     "nightwatch"
   ],
   "dependencies": {
-    "allure-js-commons": "^1.1.2",
-    "comment-parser": "^0.3.0",
-    "find": "^0.2.3",
-    "lodash": "^3.10.1",
-    "nightwatch": "^0.8.6"
+    "allure2-js-commons": "^1.2.0",
+    "comment-parser": "^0.5.0",
+    "find": "^0.2.9",
+    "nightwatch": "^1.0.14"
   },
   "repository": {
     "type": "git",
-    "url": "git@github.com:sharadJay/nightwatch-allure-adapter.git"
+    "url": "git@github.com:kschingiz/nightwatch-allure-adapter.git"
   },
-  "author": "Sharad Jain",
+  "author": "Kengessov Shynggys",
   "license": "ISC"
 }
