@@ -205,6 +205,9 @@ const self = (module.exports = {
   },
   //FIXME file paths are incorrect, hence can not use this
   parseFileForTags: function(testfilePath) {
+    // works incorrect
+    return {};
+
     const opts = {
       parsers: [cp.PARSERS.parse_tag, cp.PARSERS.parse_description]
     };
