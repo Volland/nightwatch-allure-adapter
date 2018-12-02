@@ -3,9 +3,9 @@
 //FIXME Errors in test files can not be detected
 //TODO Errors if command names or functions are not present are displayed anyhow,they can be used
 //TODO screenshots FTW
-const Allure = require("allure2-js-commons");
+const Allure = require("allure-js-commons");
 const allureReporter = new Allure();
-const Runtime = require("allure2-js-commons/runtime");
+const Runtime = require("allure-js-commons/runtime");
 const fs = require("fs");
 const path = require("path");
 const cp = require("comment-parser");
@@ -13,51 +13,32 @@ const runtimeAllure = new Runtime(allureReporter);
 const find = require("find");
 
 const self = (module.exports = {
-  write: function(results, options, done, directoryPath) {
-    allureReporter.setOptions(" -o reports/allure-report" || {});
-    for (let currentModule in results.modules) {
-      module = results.modules[currentModule];
+  write: function(results, options, done) {
+    allureReporter.setOptions(` -o ${options.output_folder}` || {});
+    for (let currentModuleName in results.modules) {
+      let currentModule = results.modules[currentModuleName];
       const currentTest = {
-        failures: self.parse(module.failures),
-        errors: self.parse(module.errors),
-        skipped: self.parse(module.skipped.length),
-        tests: self.parse(module.tests),
-        isFailure: false,
-        isSkipped: false,
-        suiteName: module.group,
-        testName: currentModule,
+        failures: self.parse(currentModule.failures),
+        errors: self.parse(currentModule.errors),
+        skipped: self.parse(currentModule.skipped.length),
+        tests: self.parse(currentModule.tests),
+        isFailure: currentModule.failures > 0 || currentModule.errors > 0,
+        isSkipped: currentModule.skipped.length === currentModule.tests,
+        suiteName: currentModule.group,
+        testName: currentModuleName,
         testSteps: [],
         errorMessage: "",
-        startTimestamp: self.parseDate(module.timestamp),
-        endTimestamp: self.parseDate(module.timestamp),
+        startTimestamp: self.parseDate(currentModule.timestamp),
+        endTimestamp: self.parseDate(currentModule.timestamp),
         tags: {}
       };
 
-      if (typeof directoryPath !== "undefined") {
-        currentTest.tags = self.parseFileForTags(
-          directoryPath + "/tests/" + currentModule + ".js"
-        );
-      }
-
-      if (currentTest.skipped === currentTest.tests) {
-        currentTest.isSkipped = true;
-      } else if (currentTest.failures > 0 || currentTest.errors > 0) {
-        currentTest.isFailure = true;
-      }
-      const testPath = currentTest.testName.split("/");
-
-      if (currentTest.suiteName === undefined) {
-        currentTest.suiteName = testPath[testPath.length - 2];
-      }
       if (currentTest.suiteName === "") {
-        currentTest.suiteName = "Default Suite";
+        currentTest.suiteName = currentTest.testName;
       }
       if (results.hasOwnProperty("environment")) {
         currentTest.suiteName =
           currentTest.suiteName + "-" + results.environment;
-      }
-      if (testPath.length > 1) {
-        currentTest.testName = testPath[testPath.length - 1];
       }
 
       allureReporter.startSuite(
@@ -75,15 +56,17 @@ const self = (module.exports = {
       if (currentTest.tags.hasOwnProperty("description")) {
         runtimeAllure.description(currentTest.tags.description);
       }
+
       allureReporter.addAttachment(
         "Reported Result",
         JSON.stringify(results),
         "application/json"
       );
+
       let previousStepTimestamp = currentTest.startTimestamp;
 
-      for (let completedStep in module.completed) {
-        const currentStep = module.completed[completedStep];
+      for (let completedStep in currentModule.completed) {
+        const currentStep = currentModule.completed[completedStep];
 
         const curCompletedStep = {
           failures: self.parse(currentStep.failed),
@@ -137,49 +120,21 @@ const self = (module.exports = {
         }
       }
 
-      for (let skippedStep in module.skipped) {
+      for (let skippedStep in currentModule.skipped) {
         allureReporter.startStep(
-          module.skipped[skippedStep],
+          currentModule.skipped[skippedStep],
           currentTest.endTimestamp
         );
         allureReporter.endStep("skipped", currentTest.endTimestamp);
       }
 
       if (currentTest.isFailure) {
-        if (typeof directoryPath !== "undefined") {
-          find.file(
-            /\.png$/,
-            directoryPath +
-              "/screenshots/" +
-              results.environment +
-              "/" +
-              currentModule,
-            function(files) {
-              files.forEach(function(file) {
-                fs.readFile(file, function(err, data) {
-                  allureReporter.addAttachment(
-                    "screenshots",
-                    data,
-                    "image/png"
-                  );
-                  allureReporter.endCase(
-                    "failed",
-                    currentTest.errorMessage,
-                    currentTest.endTimestamp
-                  );
-                  allureReporter.endSuite(currentTest.endTimestamp);
-                });
-              });
-            }
-          );
-        } else {
-          allureReporter.endCase(
-            "failed",
-            currentTest.errorMessage,
-            currentTest.endTimestamp
-          );
-          allureReporter.endSuite(currentTest.endTimestamp);
-        }
+        allureReporter.endCase(
+          "failed",
+          currentTest.errorMessage,
+          currentTest.endTimestamp
+        );
+        allureReporter.endSuite(currentTest.endTimestamp);
       } else if (currentTest.isSkipped) {
         allureReporter.endCase(
           "skipped",
