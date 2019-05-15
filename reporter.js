@@ -62,7 +62,7 @@ module.exports = {
       if (currentTest.tags.hasOwnProperty("description")) {
         runtimeAllure.description(currentTest.tags.description);
       }
-      if(currentTest.story) {
+      if(currentTest.reportPrefix) {
         runtimeAllure.story(currentTest.reportPrefix);
         runtimeAllure.addLabel('prefix',currentTest.reportPrefix);
       }
