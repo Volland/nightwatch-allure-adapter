@@ -6,35 +6,42 @@
 const Allure = require("allure-js-commons");
 const allureReporter = new Allure();
 const Runtime = require("allure-js-commons/runtime");
-const fs = require("fs");
-const path = require("path");
-const cp = require("comment-parser");
 const runtimeAllure = new Runtime(allureReporter);
-const find = require("find");
 
-const self = (module.exports = {
+function parseIntWithDefault(str, defaultValue) {
+  return isNaN(str) ? defaultValue || 0 : parseInt(str, 10);
+}
+function parseFloatWithDefault (str, defaultValue)  {
+  return isNaN(str) ? defaultValue || 0 : parseFloat(str);
+}
+
+function parseDate(str) {
+  return Date.parse(str);
+}
+module.exports = {
   write: function(results, options, done) {
     allureReporter.setOptions(` -o ${options.output_folder}` || {});
-    for (let currentModuleName in results.modules) {
-      let currentModule = results.modules[currentModuleName];
+
+    Object.entries(results.modules).forEach(([currentModuleName, currentModule]) => {
       const currentTest = {
-        failures: self.parse(currentModule.failures),
-        errors: self.parse(currentModule.errors),
-        skipped: self.parse(currentModule.skipped.length),
-        tests: self.parse(currentModule.tests),
+        failures: parseIntWithDefault(currentModule.failures),
+        errors: parseIntWithDefault(currentModule.errors),
+        skipped: parseIntWithDefault(currentModule.skipped.length),
+        tests: parseIntWithDefault(currentModule.tests),
         isFailure: currentModule.failures > 0 || currentModule.errors > 0,
         isSkipped: currentModule.skipped.length === currentModule.tests,
         suiteName: currentModule.group,
         testName: currentModuleName,
+        reportPrefix: currentModule.reportPrefix,
         testSteps: [],
         errorMessage: "",
-        startTimestamp: self.parseDate(currentModule.timestamp),
-        endTimestamp: self.parseDate(currentModule.timestamp),
+        startTimestamp: parseDate(currentModule.timestamp),
+        endTimestamp:  parseDate(currentModule.timestamp),
         tags: {}
       };
 
       if (currentTest.suiteName === "") {
-        currentTest.suiteName = currentTest.testName;
+        currentTest.suiteName = `(${currentTest.reportPrefix}) ${currentTest.testName}`;
       }
       if (results.hasOwnProperty("environment")) {
         currentTest.suiteName =
@@ -49,12 +56,15 @@ const self = (module.exports = {
         currentTest.testName,
         currentTest.startTimestamp
       );
-      //TODO considering good number of properties switch should be used
       if (currentTest.tags.hasOwnProperty("testcaseId")) {
         runtimeAllure.addLabel("testId", currentTest.tags["testcaseId"]);
       }
       if (currentTest.tags.hasOwnProperty("description")) {
         runtimeAllure.description(currentTest.tags.description);
+      }
+      if(currentTest.story) {
+        runtimeAllure.story(currentTest.reportPrefix);
+        runtimeAllure.addLabel('prefix',currentTest.reportPrefix);
       }
 
       allureReporter.addAttachment(
@@ -69,14 +79,14 @@ const self = (module.exports = {
         const currentStep = currentModule.completed[completedStep];
 
         const curCompletedStep = {
-          failures: self.parse(currentStep.failed),
-          errors: self.parse(currentStep.errors),
-          skipped: self.parse(currentStep.skipped),
-          passed: self.parse(currentStep.passed),
+          failures: parseIntWithDefault(currentStep.failed),
+          errors: parseIntWithDefault(currentStep.errors),
+          skipped: parseIntWithDefault(currentStep.skipped),
+          passed: parseIntWithDefault(currentStep.passed),
           startTimestamp: previousStepTimestamp,
           endTimestamp:
-            previousStepTimestamp + self.parseFloat(currentStep.time) * 1000,
-          totalTime: self.parseFloat(currentStep.time) * 1000
+            previousStepTimestamp + parseFloatWithDefault(currentStep.time) * 1000,
+          totalTime: parseFloatWithDefault(currentStep.time) * 1000
         };
         currentTest.endTimestamp =
           currentTest.endTimestamp + curCompletedStep.totalTime;
@@ -135,59 +145,20 @@ const self = (module.exports = {
           currentTest.endTimestamp
         );
         allureReporter.endSuite(currentTest.endTimestamp);
-      } else if (currentTest.isSkipped) {
-        allureReporter.endCase(
-          "skipped",
-          "No Steps Performed",
-          currentTest.endTimestamp
-        );
-        allureReporter.endSuite(currentTest.endTimestamp);
       } else {
-        allureReporter.endCase("passed", "", currentTest.endTimestamp);
-        allureReporter.endSuite(currentTest.endTimestamp);
-      }
-    }
-    done();
-  },
-  parse: function(str) {
-    return isNaN(str) ? 0 : parseInt(str, 10);
-  },
-  parseFloat: function(str) {
-    return isNaN(str) ? 0 : parseFloat(str);
-  },
-  parseDate: function(str) {
-    return Date.parse(str);
-  },
-  //FIXME file paths are incorrect, hence can not use this
-  parseFileForTags: function(testfilePath) {
-    // works incorrect
-    return {};
-
-    const opts = {
-      parsers: [cp.PARSERS.parse_tag, cp.PARSERS.parse_description]
-    };
-
-    const file = fs.readFileSync(testfilePath, "utf-8");
-    const parsedInformation = cp(file, opts);
-    const tcTags = {};
-    if (parsedInformation.length > 0) {
-      tcTags.description = parsedInformation[0].description;
-      const tagsInTest = parsedInformation[0].tags;
-      for (let tag in tagsInTest) {
-        currentTag = tagsInTest[tag];
-        switch (currentTag.tag) {
-          case "testcaseid":
-            tcTags.testcaseId = currentTag.description;
-            break;
-          case "type":
-            tcTags.type = currentTag.description;
-            break;
-          case "testtype":
-            tcTags.testType = currentTag.description;
-            break;
+        if (currentTest.isSkipped) {
+          allureReporter.endCase(
+              "skipped",
+              "No Steps Performed",
+              currentTest.endTimestamp
+          );
+          allureReporter.endSuite(currentTest.endTimestamp);
+        } else {
+          allureReporter.endCase("passed", "", currentTest.endTimestamp);
+          allureReporter.endSuite(currentTest.endTimestamp);
         }
       }
-    }
-    return tcTags;
+    });
+    done();
   }
-});
+};

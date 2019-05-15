@@ -59,6 +59,7 @@ Temporary Items
 # if you remove the above rule, at least ignore the following:
 
 # User-specific stuff:
+.idea
 # .idea/workspace.xml
 # .idea/tasks.xml
 # .idea/dictionaries
@@ -81,6 +82,7 @@ Temporary Items
 ## File-based project format:
 *.ipr
 *.iws
+*.iml
 
 ## Plugin-specific files:
 
