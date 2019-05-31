@@ -23,6 +23,8 @@ module.exports = {
     allureReporter.setOptions(` -o ${options.output_folder}` || {});
 
     Object.entries(results.modules).forEach(([currentModuleName, currentModule]) => {
+      const capabilityData = options && options.capabilitiesMap && options.capabilitiesMap[currentModuleName];
+
       const currentTest = {
         failures: parseIntWithDefault(currentModule.failures),
         errors: parseIntWithDefault(currentModule.errors),
@@ -32,13 +34,15 @@ module.exports = {
         isSkipped: currentModule.skipped.length === currentModule.tests,
         suiteName: currentModule.group,
         testName: currentModuleName,
-        reportPrefix: currentModule.reportPrefix,
+        reportPrefix: capabilityData.caption || currentModule.reportPrefix,
+        capabilities: capabilityData.capabilities,
         testSteps: [],
         errorMessage: "",
         startTimestamp: parseDate(currentModule.timestamp),
         endTimestamp:  parseDate(currentModule.timestamp),
         tags: {}
       };
+
 
       if (currentTest.suiteName === "") {
         currentTest.suiteName = `(${currentTest.reportPrefix}) ${currentTest.testName}`;
@@ -62,10 +66,14 @@ module.exports = {
       if (currentTest.tags.hasOwnProperty("description")) {
         runtimeAllure.description(currentTest.tags.description);
       }
+      if (currentTest.capabilities) {
+        runtimeAllure.addArgument('capabilities', JSON.stringify(currentTest.capabilities));
+      }
       if(currentTest.reportPrefix) {
         runtimeAllure.story(currentTest.reportPrefix);
         runtimeAllure.addLabel('prefix',currentTest.reportPrefix);
       }
+
 
       allureReporter.addAttachment(
         "Reported Result",
